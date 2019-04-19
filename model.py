@@ -32,15 +32,10 @@ class Han():
             sequence_length = self.sequence_lengths,
             dtype = tf.float32
             )
-            self.outputs = tf.concat([output_vals[0],output_vals[1]],axis=2)
-            print(tf.shape(self.outputs))
-            self.final_state = tf.concat([output_states[0].c,output_states[0].c],axis=1)
-            print(tf.shape(self.final_state))
-            with tf.variable_scope('dense'):
-                self.W = tf.get_variable('W',shape=[2 * self.hidden_size,self.num_classes],initializer=tf.contrib.layers.xavier_initializer(),dtype=tf.float32)
-                self.b = tf.get_variable('b',shape=[2],initializer=tf.constant_initializer(0.0),dtype=tf.float32)
-            self.logits = tf.matmul(self.final_state,self.W) + self.b 
-            self.cost = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(logits=self.logits,labels=self.y))
+            self.outputs = tf.concat([output_vals[0],output_vals[1]],2)
+            self.final_state = tf.concat([output_states[0].c,output_states[1].c],1)
+            attention = self.attention(self.outputs)
+            #Sentence embeddings to be generated here
             
     def attention(self,inputs):
         with tf.variable_scope('attention_layer',reuse=tf.AUTO_REUSE):
@@ -49,33 +44,5 @@ class Han():
             attention = tf.reduce_sum(tf.matmul(projection,attention_weights),axis=2,keep_dims=True)
             attention_softmax = tf.nn.softmax(attention,axis=1)
             final_weights = tf.matmul(projection,attention_softmax)
-            output = tf.reduce_sum(final_weights,axis=-1)
-            return output
-    
-    def train(self,X,y,sequence_length):
-        optimizer = tf.train.AdamOptimizer(learning_rate=0.001)
-        self.train_step = optimizer.minimize(self.cost)
-        with tf.Session() as sess:
-            sess.run(tf.global_variables_initializer())
-            sess.run(tf.tables_initializer())
-            fetches = {
-            'outputs': self.outputs,
-            'final_state': self.final_state
-            }
-            feed_dict = {
-            self.X: X,
-            self.y: y,
-            self.sequence_lengths: sequence_length
-            }
-            resp = sess.run(fetches,feed_dict)
-            print('Outputs:- ')
-            print(resp['outputs'])
-            print('Final State:- ')
-            print(resp['final_state'])
-
-
-X = tf.Variable(tf.truncated_normal(shape=[10,10,20]),dtype=tf.float32)
-y = tf.Variable(tf.constant(1,shape=[10],dtype=tf.int64))
-sequence_length = tf.Variable(tf.constant(20,shape=[10],dtype=tf.int64))
-han = Han(2,0,10,20,10,0,0)         
-han.train(X,y,sequence_length)   
+            output = tf.reduce_sum(final_weights,axis=1)
+            return output      
