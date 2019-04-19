@@ -7,12 +7,9 @@ import tensorflow as tf
 import tensorflow.contrib.layers as layers
 import tensorflow_hub as hub
 import os
+import time
 
-def create_dataset_from_chunks(path):
-    print(os.listdir(path))
-    
-
-class Han():
+class HAN():
     
     def __init__(self,num_classes,embedding_size,max_no_sentence,max_sentence_length,hidden_size,batch_size,epochs,learning_rate):
         self.X = tf.placeholder(shape=[None,max_no_sentence,max_sentence_length],dtype=tf.float32)
@@ -64,7 +61,7 @@ class Han():
             sequence_length = self.sentence_lengths,
             dtype = tf.float32
             )    
-        self.final_state_se = tf.concat([output_states_se[0].c,output_states_se[1].c)],1)
+        self.final_state_se = tf.concat([output_states_se[0].c,output_states_se[1].c],1)
         attention_op_se = self.attention(self.outputs_se)
         with tf.variable_scope('softmax',reuse=tf.AUTO_REUSE):
             self.W = tf.get_variable('W',initializer=tf.truncated_normal_initializer(shape=[None,2 * self.hidden_size]),dtype=tf.float32)
@@ -101,4 +98,32 @@ class Han():
                     resp = sess.run(fetched,feed_dict)
                     cost += resp['cost']   
                 print("Cost at epoch: " + str(i))
-                print()
+                print(cost)
+
+def create_dataset_from_chunks(path):
+    starttime = time.time()
+    dataset = {
+    'label': [],
+    'news': []
+    }
+    categories = os.listdir(path)
+    for i in range(0,len(categories)):
+        if(categories[i][0] != '.'):
+            documents = os.listdir(path + categories[i])
+            for j in range(0,len(documents)):
+                if(documents[j][0] != '.'):
+                    dataset['label'].append(categories[i])
+                    with open(path + categories[i] + '/' +  documents[j],'rb') as f:
+                        dataset['news'].append(f.read())
+    data = pd.DataFrame(data=dataset)
+    data.to_csv(path + '/dataset.csv')
+    print("Dataset shape:- ")
+    print(data.shape)
+    endtime = time.time()
+    print("Time taken to create dataset from chunks:- ")
+    print(endtime - starttime)
+                
+if __name__ == '__main__':    
+    if(not os.path.exists('data/dataset/dataset.csv')):
+        print("Creating dataset from chunks:- ")
+        create_dataset_from_chunks('data/dataset/')
