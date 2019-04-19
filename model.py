@@ -24,6 +24,8 @@ class Han():
     def model(self):
         lstm_cell_fw = tf.contrib.rnn.BasicLSTMCell(self.hidden_size,forget_bias=1.0,state_is_tuple=True,reuse=tf.get_variable_scope().reuse)
         lstm_cell_bw = tf.contrib.rnn.BasicLSTMCell(self.hidden_size,forget_bias=1.0,state_is_tuple=True,reuse=tf.get_variable_scope().reuse)
+        lstm_cell_se_fw = tf.contrib.rnn.BasicLSTMCell(self.hidden_size,forget_bias=1.0,state_is_tuple=True,reuse=tf.get_variable_scope().reuse)
+        lstm_cell_se_bw = tf.contrib.rnn.BasicLSTMCell(self.hidden_size,forget_bias=1.0,state_is_tuple=True,reuse=tf.get_variable_scope().reuse)
         with tf.variable_scope('bidirectional_lstm'):
             output_vals,output_states = tf.nn.bidirectional_dynamic_rnn(
             cell_fw = lstm_cell_fw,
@@ -32,10 +34,23 @@ class Han():
             sequence_length = self.sequence_lengths,
             dtype = tf.float32
             )
-            self.outputs = tf.concat([output_vals[0],output_vals[1]],2)
-            self.final_state = tf.concat([output_states[0].c,output_states[1].c],1)
-            attention = self.attention(self.outputs)
-            #Sentence embeddings to be generated here
+        self.outputs = tf.concat([output_vals[0],output_vals[1]],2)
+        self.final_state = tf.concat([output_states[0].c,output_states[1].c],1)
+        attention_op = self.attention(self.outputs)
+        attention_op = tf.reshape(attention_op,[None,self.max_no_sentence,self.max_sentence_length])
+        with tf.variable_scope('bidirectional_lstm_se'):
+            output_vals_se,output_states_se = tf.nn.bidirectional_dynamic_rnn(
+            cell_fw = lstm_cell_se_fw,
+            cell_bw = lstm_cell_se_bw,
+            inputs = attention_op,
+            sequence_length = self.sentence_lengths,
+            dtype = tf.float32
+            )    
+        self.outputs_se = tf.concat([output_vals_se[0],output_vals_se[1]],2)
+        self.final_state_se = tf.concat([output_states_se[0].c,output_states_se[1].c)],1)
+        attention_op_se = self.attention(self.outputs_se)
+        
+        #Sentence embeddings to be generated here
             
     def attention(self,inputs):
         with tf.variable_scope('attention_layer',reuse=tf.AUTO_REUSE):
