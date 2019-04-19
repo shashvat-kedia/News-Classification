@@ -15,6 +15,11 @@ from nltk.stem import WordNetLemmatizer
 import re
 from numpy import nan
 
+stop_words = set(stopwords.words('english'))
+
+dictionary = []
+embeddings = {}
+
 class HAN():
     
     def __init__(self,num_classes,embedding_size,max_no_sentence,max_sentence_length,hidden_size,batch_size,epochs,learning_rate):
@@ -319,7 +324,7 @@ def create_dataset_from_chunks(path):
                 if(documents[j][0] != '.'):
                     dataset['label'].append(categories[i])
                     with open(path + categories[i] + '/' +  documents[j],'rb') as f:
-                        dataset['news'].append(preprocess(f.read()))
+                        dataset['news'].append(preprocess(str(f.read())))
     data = pd.DataFrame(data=dataset)
     data.to_csv(path + '/dataset.csv')
     print("Dataset shape:- ")
@@ -332,8 +337,5 @@ if __name__ == '__main__':
     if(not os.path.exists('data/dataset/dataset.csv')):
         print("Creating dataset from chunks:- ")
         create_dataset_from_chunks('data/dataset/')
-        stop_words = set(stopwords.words('english'))
-        dictionary = []
-        embeddings = {}
-        elmo = hub.Module("https://tfhub.dev/google/elmo/2",trainable=True)
+    elmo = hub.Module("https://tfhub.dev/google/elmo/2",trainable=True)
         
