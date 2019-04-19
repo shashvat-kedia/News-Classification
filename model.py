@@ -46,11 +46,15 @@ class Han():
             sequence_length = self.sentence_lengths,
             dtype = tf.float32
             )    
-        self.outputs_se = tf.concat([output_vals_se[0],output_vals_se[1]],2)
         self.final_state_se = tf.concat([output_states_se[0].c,output_states_se[1].c)],1)
         attention_op_se = self.attention(self.outputs_se)
-        
-        #Sentence embeddings to be generated here
+        with tf.variable_scope('softmax',reuse=tf.AUTO_REUSE):
+            self.W = tf.get_variable('W',initializer=tf.truncated_normal_initializer(shape=[None,2 * self.hidden_size]),dtype=tf.float32)
+            self.b = tf.get_variable('b',initializer=tf.constant_initializer(0.0,shape=[None]),dtype=tf.float32)
+        self.logits = self.matmul(self.final_state_se,self.W) + self.b
+        self.predictions= tf.nn.softmax(self.logits)
+        self.cross_entropy = tf.nn.sparse_softmax_cross_entropy_with_logits(labels=self.y,logits=self.logits)
+        self.cost = tf.reduce_mean(self.cross_entropy)
             
     def attention(self,inputs):
         with tf.variable_scope('attention_layer',reuse=tf.AUTO_REUSE):
