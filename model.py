@@ -9,13 +9,14 @@ import tensorflow_hub as hub
 import os
 import time
 import nltk
-from nltk import word_tokenize
+from nltk import sent_tokenize, word_tokenize
 from nltk.corpus import stopwords, wordnet
 from nltk.stem import WordNetLemmatizer
 import re
 from numpy import nan
 
 stop_words = set(stopwords.words('english'))
+elmo = hub.Module("https://tfhub.dev/google/elmo/2",trainable=True)
 
 dictionary = []
 embeddings = {}
@@ -172,21 +173,6 @@ def read_dictionary():
         for i in range(0,len(temp)):
             dictionary.append(temp[i])
 
-def save_model(sess,path):
-    saver = tf.train.Saver()
-    saver.save(sess,path)
-
-def load_model(sess,path):
-    saver = tf.train.Saver()
-    saver.restore(sess,path)
-
-def preprocess(sentence):
-    processed_sentence = re.sub(r'[^a-zA-Z]', ' ', sentence)
-    tokens_comment = word_tokenize(processed_sentence)
-    tokens_comment = remove_stopwords(tokens_comment)
-    tokens_comment = lemmatize(tokens_comment)
-    return tokens_comment
-
 def create_dictionary(dataset):
     for index,row in dataset.iterrows():
         tokens_comment = preprocess(str(row['parent_comment']) + " " + str(row['comment']))
@@ -222,31 +208,6 @@ def pad_tokens(tokens,max_length):
     while len(tokens) < max_length:
         tokens = np.vstack([tokens,zeros])
     return tokens
-
-def get_max_length(X):
-    max_length = 0
-    index = 0
-    for i in range(0,len(X.index)):
-        if(X[i:i+1][X.index[i]] is not nan):
-            preprocessed_tokens = preprocess(X[i:i+1][X.index[i]])
-            if max_length < len(preprocessed_tokens):
-                max_length = len(preprocessed_tokens)
-                index = i
-    print(index)
-    print(preprocess(X[index:index+1][X.index[index]]))
-    return max_length
-
-def get_max_length_parent(X_train,index):
-    max_length = 0
-    ind = 0
-    for i in range(0,len(index)):
-        processed_tokens = preprocess(X_train[index[i]])
-        if max_length < len(processed_tokens):
-            max_length = len(processed_tokens)
-            ind = i
-    print(ind)
-    print(preprocess(X_train[index[ind]]))
-    return max_length
 
 def embedding_lookup(x,embedding_dim=300):
     if(len(embeddings) == 0):
@@ -287,7 +248,7 @@ def get_deep_contextualized_embeddings(X,y):
                 elmo_tokens.append(preprocessed_tokens)
                 elmo_tokens_length.append(len(preprocessed_tokens))
                 #deep_contextualized_embeddings.append(np.hstack([word_embedding,elmo_embedding]))
-                if (i + 1) % 1000 == 0:
+                if (i + 1) % 400 == 0:
                     elmo_embedding = get_elmo_embeddings(sess,np.array(elmo_tokens),np.array(elmo_tokens_length))
                     for j in range(0,len(elmo_embedding)):
                         deep_contextualized_embeddings.append(np.array(pad_tokens(elmo_embedding[j],max_length)))
@@ -310,6 +271,16 @@ def save_state():
     np.save('data/trained_models/y_train.npy',y_train)
     np.save('data/trained_models/y_test.npy',y_test)
 
+def preprocess(document):
+    processed_document = re.sub(r'[^a-zA-Z.]', ' ', document)
+    tokens_sentence = sent_tokenize(processed_document)
+    for i in range(0,len(tokens_sentence)):
+        tokens_comment = word_tokenize(processed_document)
+        tokens_comment = remove_stopwords(tokens_comment)
+        tokens_comment = lemmatize(tokens_comment)
+    print(len(tokens_sentence))
+    return tokens_comment
+
 def create_dataset_from_chunks(path):
     starttime = time.time()
     dataset = {
@@ -324,7 +295,7 @@ def create_dataset_from_chunks(path):
                 if(documents[j][0] != '.'):
                     dataset['label'].append(categories[i])
                     with open(path + categories[i] + '/' +  documents[j],'rb') as f:
-                        dataset['news'].append(preprocess(str(f.read())))
+                        dataset['news'].append(str(f.read()))
     data = pd.DataFrame(data=dataset)
     data.to_csv(path + '/dataset.csv')
     print("Dataset shape:- ")
@@ -332,10 +303,32 @@ def create_dataset_from_chunks(path):
     endtime = time.time()
     print("Time taken to create dataset from chunks:- ")
     print(endtime - starttime)
+    return data
+            
+def get_sentence_and_words_attr(dataset):
+    max_no_sentence = 0
+    max_no_words = 0
+    document_lengths = []
+    sentence_lengths = []
+    for index,rows in dataset.iterrows():
+        sentence_tokens = sent_tokenize(rows['news'])
+        if max_no_sentence < len(sentence_tokens):
+            max_no_sentence: len(sentence_tokens)
+        for i in range(0,len(sentence_tokens)):
+            if max_no_words < len(sentence_tokens[i]):
+                max_no_words = len(sentence_tokens[i])
+    return max_no_sentence,max_no_words
                 
 if __name__ == '__main__':    
     if(not os.path.exists('data/dataset/dataset.csv')):
         print("Creating dataset from chunks:- ")
-        create_dataset_from_chunks('data/dataset/')
-    elmo = hub.Module("https://tfhub.dev/google/elmo/2",trainable=True)
-        
+        dataset = create_dataset_from_chunks('data/dataset/')
+    else:
+        dataset = pd.read_csv('data/dataset/dataset.csv')
+    print(dataset.shape)
+    print(dataset.head())
+    max_no_sentence,max_no_words = get_sentence_and_words_attr(dataset)
+    han = HAN(5,1024,max_no_sentence,max_no_words,1024,400,10,0.001)
+    han.train(X,y)
+    #processed_document_elmo,y_train,sequence_lengths,sentence_lengths = get_deep_contextualized_embeddings(X,y)
+    
