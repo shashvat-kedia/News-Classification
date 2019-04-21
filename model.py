@@ -5,7 +5,6 @@ matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
 import tensorflow as tf 
 import tensorflow.contrib.layers as layers
-import tensorflow_hub as hub
 import os
 import time
 import nltk
@@ -16,7 +15,6 @@ import re
 from numpy import nan
 
 stop_words = set(stopwords.words('english'))
-elmo = hub.Module("https://tfhub.dev/google/elmo/2",trainable=True)
 
 dictionary = []
 embeddings = {}
@@ -221,55 +219,6 @@ def embedding_lookup(x,embedding_dim=300):
             embedding.append(zero_arr)
     return np.array(embedding)
 
-def get_elmo_embeddings(sess,tokens_input,tokens_length):
-    embeddings = elmo(inputs={"tokens": tokens_input,"sequence_len": tokens_length},signature='tokens',as_dict=True)["elmo"]
-    return sess.run(embeddings)
-
-def get_deep_contextualized_embeddings(X,y):
-    deep_contextualized_embeddings = []
-    sequence_lengths = []
-    elmo_tokens = []
-    elmo_tokens_length = []
-    elmo_embeddings_list = []
-    y_pred = []
-    with tf.Session() as sess:
-        sess.run(tf.global_variables_initializer())
-        sess.run(tf.tables_initializer())
-        starttime = time.time()
-        for i in range(0,len(X.index)):
-            if(X[i:i+1][X.index[i]] is not nan):
-                preprocessed_tokens = preprocess(X[i:i+1][X.index[i]])
-                sequence_lengths.append(len(preprocessed_tokens))
-                y_pred.append(y[i:i+1][y.index[i]])
-                
-                #word_embedding = embedding_lookup(preprocessed_tokens)
-                #word_embedding = np.array(pad_tokens(word_embedding,max_length))
-                elmo_tokens.append(preprocessed_tokens)
-                elmo_tokens_length.append(len(preprocessed_tokens))
-                #deep_contextualized_embeddings.append(np.hstack([word_embedding,elmo_embedding]))
-                if (i + 1) % 400 == 0:
-                    elmo_embedding = get_elmo_embeddings(sess,np.array(elmo_tokens),np.array(elmo_tokens_length))
-                    for j in range(0,len(elmo_embedding)):
-                        deep_contextualized_embeddings.append(np.array(pad_tokens(elmo_embedding[j],max_length)))
-                    temp_arr = np.array(deep_contextualized_embeddings)
-                    print(temp_arr.shape)
-                    elmo_tokens.clear()
-                    elmo_tokens_length.clear()
-        endtime = time.time()
-        print("Total time to generate embeddings:- ")
-        print(endtime - starttime)
-    return np.array(deep_contextualized_embeddings),np.array(y_pred),np.array(sequence_lengths)
-
-def save_state():
-    np.save('data/trained_models/generated_embeddings_train.npy',deep_contextualized_embeddings_train)
-    np.save('data/trained_models/generated_embeddings_parent_train.npy',deep_contextualized_embeddings_parent_train)
-    np.save('data/trained_models/generated_embeddings_test.npy',deep_contextualized_embeddings_test)
-    np.save('data/trained_models/generated_embeddings_parent_test.npy',deep_contextualized_embeddings_parent_test)
-    np.save('data/trained_models/x_train.npy',X_train)
-    np.save('data/trained_models/x_test.npy',X_test)
-    np.save('data/trained_models/y_train.npy',y_train)
-    np.save('data/trained_models/y_test.npy',y_test)
-    
 def get_sentence_and_words_attr(dataset):
     max_no_sentence = 0
     max_no_words = 0
