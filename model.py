@@ -13,6 +13,7 @@ from nltk.corpus import stopwords, wordnet
 from nltk.stem import WordNetLemmatizer
 import re
 from numpy import nan
+from sklearn.model_selection import train_test_split
 
 stop_words = set(stopwords.words('english'))
 
@@ -228,10 +229,10 @@ def get_sentence_and_words_attr(dataset):
         sentence_tokens = sent_tokenize(rows['news'])
         if max_no_sentence < len(sentence_tokens):
             max_no_sentence: len(sentence_tokens)
-        sentence_tokens = preprocess(sentence_tokens)
         for i in range(0,len(sentence_tokens)):
-            if max_no_words < len(sentence_tokens[i]):
-                max_no_words = len(sentence_tokens[i])
+            processed_sentence_tokens = preprocess(sentence_tokens[i])
+            if max_no_words < len(processed_sentence_tokens):
+                max_no_words = len(processed_sentence_tokens)
     return max_no_sentence,max_no_words
 
 def preprocess(sentence):
@@ -244,10 +245,10 @@ def dataset_preprocess(sentences,max_no_sentence,max_sentence_length):
     processed_tokens = []
     sentence_lengths = []
     for i in range(0,len(sentences)):
-        tokens_comment = preprocess(sentences[i])
-        sentence_length.append(tokens_comment)
+        tokens_comment = preprocess(str(sentences[i]))
+        sentence_lengths.append(tokens_comment)
         if(len(tokens_comment) < max_sentence_length):
-            for j in range(len(tokens_comment),max_length):
+            for j in range(len(tokens_comment),max_sentence_length):
                 tokens_comment.append("<PAD>")
         processed_tokens.append(tokens_comment)
     if(len(processed_tokens) < max_no_sentence):
@@ -287,7 +288,7 @@ if __name__ == '__main__':
         dataset = pd.read_csv('data/dataset/dataset.csv')
     print(dataset.shape)
     print(dataset.head())
-    max_no_sentence,max_no_words = get_sentence_and_words_attr(dataset)
+    max_no_sentence,max_sentence_length = get_sentence_and_words_attr(dataset)
     labels = []
     preprocessed_dataset = []
     document_lengths = []
@@ -300,10 +301,12 @@ if __name__ == '__main__':
     sentence_lengths_test = []
     for index,rows in dataset.iterrows():
         labels.append(rows['label'])
-        processed_tokens,doc_length,sent_lengths = dataset_preprocess(rows['news'])
+        processed_tokens,doc_length,sent_lengths = dataset_preprocess(rows['news'],max_no_sentence,max_sentence_length)
         preprocessed_dataset.append(processed_tokens)
         document_lengths.append(doc_length)
         sentence_lengths.append(sentence_lengths)
+    temp = np.array(preprocessed_dataset)
+    print(temp.shape)
     labels = np.array(labels)
     X_train_index,X_test_index,y_train,y_test = train_test_split(np.arange(len(document_lengths)),labels,test_size=0.2,random_state=222)
     for i in range(0,len(X_train)):
@@ -320,6 +323,6 @@ if __name__ == '__main__':
     document_lengths_test = np.array(document_lengths_test)
     sentence_lengths_train = np.array(sentence_lengths_train)
     sentence_lengths_test = np.array(sentence_lengths_test)
-    han = HAN(5,1024,max_no_sentence,max_no_words,1024,400,10,0.001)
+    han = HAN(5,1024,max_no_sentence,max_no_words,300,400,10,0.001)
     han.train(preprocessed_dataset_train,document_lengths_train,sentence_lengths_train,y_train)
     han.test(preprocessed_dataset_test,document_lengths_test,sequence_lengths_test,y_test)
