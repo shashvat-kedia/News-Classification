@@ -269,14 +269,33 @@ def save_state():
     np.save('data/trained_models/x_test.npy',X_test)
     np.save('data/trained_models/y_train.npy',y_train)
     np.save('data/trained_models/y_test.npy',y_test)
+    
+def get_sentence_and_words_attr(dataset):
+    max_no_sentence = 0
+    max_no_words = 0
+    document_lengths = []
+    sentence_lengths = []
+    for index,rows in dataset.iterrows():
+        sentence_tokens = sent_tokenize(rows['news'])
+        if max_no_sentence < len(sentence_tokens):
+            max_no_sentence: len(sentence_tokens)
+        sentence_tokens = preprocess(sentence_tokens)
+        for i in range(0,len(sentence_tokens)):
+            if max_no_words < len(sentence_tokens[i]):
+                max_no_words = len(sentence_tokens[i])
+    return max_no_sentence,max_no_words
 
-def preprocess(sentences,max_no_sentence,max_sentence_length):
+def preprocess(sentence):
+    tokens_comment = word_tokenize(sentence)
+    tokens_comment = remove_stopwords(tokens_comment)
+    tokens_comment = lemmatize(tokens_comment)
+    return tokens_comment
+
+def dataset_preprocess(sentences,max_no_sentence,max_sentence_length):
     processed_tokens = []
     sentence_lengths = []
     for i in range(0,len(sentences)):
-        tokens_comment = word_tokenize(sentences[i])
-        tokens_comment = remove_stopwords(tokens_comment)
-        tokens_comment = lemmatize(tokens_comment)
+        tokens_comment = preprocess(sentences[i])
         sentence_length.append(tokens_comment)
         if(len(tokens_comment) < max_sentence_length):
             for j in range(len(tokens_comment),max_length):
@@ -320,6 +339,12 @@ if __name__ == '__main__':
     print(dataset.shape)
     print(dataset.head())
     max_no_sentence,max_no_words = get_sentence_and_words_attr(dataset)
+    preprocessed_dataset = []
+    document_lengths = []
+    sentence_lengths = []
+    for index,rows in dataset.iterrows():
+        processed_tokens,doc_length,sent_lengths = dataset_preprocess(rows['news'])
+        preprocessed_dataset.append()
     han = HAN(5,1024,max_no_sentence,max_no_words,1024,400,10,0.001)
     han.train(X,y)
     #processed_document_elmo,y_train,sequence_lengths,sentence_lengths = get_deep_contextualized_embeddings(X,y)
