@@ -96,7 +96,6 @@ class HAN():
                     fetches = {
                     'cross_entropy': self.cross_entropy,
                     'cost': self.cost,
-                    'predictions': self.predictions,
                     'train_step': self.train_step
                     }
                     feed_dict = {
@@ -109,6 +108,27 @@ class HAN():
                     cost += resp['cost']   
                 print("Cost at epoch: " + str(i))
                 print(cost)
+                
+    def test(self,X,document_lengths,sequence_lengths,y):
+        with tf.Session() as sess:
+            fetches = {
+            'cross_entropy': self.cost_entropy,
+            'cost': self.cost,
+            'predictions': self.predictions
+            }
+            feed_dict = {
+            self.X: X,
+            self.y: y,
+            self.sequence_length: sequence_lengths,
+            self.document_length: document_lengths
+            }
+            resp = sess.run(fetches,feed_dict)
+            print('Cost:- ')
+            print(resp['cost'])
+            print('Cross entropy:- ')
+            print(resp['cross_entropy'])
+            print('Predictions:- ')
+            print(resp['predictions'])
 
 def remove_stopwords(tokens):
     tokens_wo_stopwords = []
@@ -302,4 +322,4 @@ if __name__ == '__main__':
     sentence_lengths_test = np.array(sentence_lengths_test)
     han = HAN(5,1024,max_no_sentence,max_no_words,1024,400,10,0.001)
     han.train(preprocessed_dataset_train,document_lengths_train,sentence_lengths_train,y_train)
-    
+    han.test(preprocessed_dataset_test,document_lengths_test,sequence_lengths_test,y_test)
