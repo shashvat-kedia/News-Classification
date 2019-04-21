@@ -81,7 +81,7 @@ class HAN():
         self.cross_entropy = tf.nn.sparse_softmax_cross_entropy_with_logits(labels=self.y,logits=self.logits)
         self.cost = tf.reduce_mean(self.cross_entropy)
         
-    def train(self,X,y,sequence_lengths,document_lengths):
+    def train(self,X,document_lengths,sequence_lengths,y):
         optimizer = tf.train.AdamOptimizer(learning_rate=self.learning_rate)
         self.train_step = optimizer.minimize(self.cost)
         with tf.Session() as sess:
@@ -109,26 +109,6 @@ class HAN():
                     cost += resp['cost']   
                 print("Cost at epoch: " + str(i))
                 print(cost)
-
-def remove_stopwords(tokens):
-    tokens_wo_stopwords = []
-    for i in range(0,len(tokens)):
-        if tokens[i].lower() not in stop_words:
-            tokens_wo_stopwords.append(tokens[i].lower())
-    return tokens_wo_stopwords
-
-def get_pos_tag(token):
-    pos_tag = nltk.pos_tag([token])[0][1]
-    if pos_tag.startswith('N'):
-        return wordnet.NOUN
-    elif pos_tag.startswith('V'):
-        return wordnet.VERB
-    elif pos_tag.startswith('J'):
-        return wordnet.ADJ
-    elif pos_tag.startswith('R'):
-        return wordnet.ADV
-    else:
-        return wordnet.NOUN
 
 def remove_stopwords(tokens):
     tokens_wo_stopwords = []
@@ -288,13 +268,38 @@ if __name__ == '__main__':
     print(dataset.shape)
     print(dataset.head())
     max_no_sentence,max_no_words = get_sentence_and_words_attr(dataset)
+    labels = []
     preprocessed_dataset = []
     document_lengths = []
     sentence_lengths = []
+    preprocessed_dataset_train = []
+    preprocessed_dataset_test = []
+    document_lengths_train = []
+    document_lengths_test = []
+    sentence_lengths_train = []
+    sentence_lengths_test = []
     for index,rows in dataset.iterrows():
+        labels.append(rows['label'])
         processed_tokens,doc_length,sent_lengths = dataset_preprocess(rows['news'])
-        preprocessed_dataset.append()
+        preprocessed_dataset.append(processed_tokens)
+        document_lengths.append(doc_length)
+        sentence_lengths.append(sentence_lengths)
+    labels = np.array(labels)
+    X_train_index,X_test_index,y_train,y_test = train_test_split(np.arang(len(document_lengths)),labels,test_size=0.2,random_state=222)
+    for i in range(0,len(X_train)):
+        preprocessed_dataset_train.append(preprocessed_dataset[X_train[i]])
+        document_lengths_train.append(document_lengths[X_train[i]])
+        sentence_lengths_train.append(sentence_lengths[X_train[i]])
+    for i in range(0,len(X_test)):
+        preprocessed_dataset_test.append(preprocessed_dataset[X_test[i]])
+        document_lengths_test.append(document_lengths[X_test[i]])
+        sentence_lengths_test.append(sentence_lengths[X_test[i]])
+    preprocessed_dataset_train = np.array(preprocessed_dataset_train)
+    preprocessed_dataset_test = np.array(preprocessed_dataset_test)
+    document_lengths_train = np.array(document_lengths_train)
+    document_lengths_test = np.array(document_lengths_test)
+    sentence_lengths_train = np.array(sentence_lengths_train)
+    sentence_lengths_test = np.array(sentence_lengths_test)
     han = HAN(5,1024,max_no_sentence,max_no_words,1024,400,10,0.001)
-    han.train(X,y)
-    #processed_document_elmo,y_train,sequence_lengths,sentence_lengths = get_deep_contextualized_embeddings(X,y)
+    han.train(preprocessed_dataset_train,document_lengths_train,sentence_lengths_train,y_train)
     
