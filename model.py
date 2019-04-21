@@ -89,6 +89,7 @@ class HAN():
             sess.run(tf.global_variables_initializer())
             for i in range(1,self.epochs + 1):
                 cost = 0
+                starttime = time.time()
                 for i in range(0,math.ceil(X.shape[3] / self.batch_size)):
                     X_batch = X[i * self.batch_size : min(X.shape[3], (i + 1) * self.batch_size)]
                     y_batch = y[i * self.batch_size : min(X.shape[3], (i + 1) * self.batch_size)]
@@ -107,6 +108,9 @@ class HAN():
                     }
                     resp = sess.run(fetched,feed_dict)
                     cost += resp['cost']   
+                endtime = time.time()
+                print("Time to train epoch " + str(i) + " :-")
+                print(endtime - starttime)
                 print("Cost at epoch: " + str(i))
                 print(cost)
                 
@@ -299,24 +303,28 @@ if __name__ == '__main__':
     document_lengths_test = []
     sentence_lengths_train = []
     sentence_lengths_test = []
+    starttime = time.time()
     for index,rows in dataset.iterrows():
         labels.append(rows['label'])
         processed_tokens,doc_length,sent_lengths = dataset_preprocess(rows['news'],max_no_sentence,max_sentence_length)
         preprocessed_dataset.append(processed_tokens)
         document_lengths.append(doc_length)
         sentence_lengths.append(sentence_lengths)
+    endtime = time.time()
+    print("Time to preprocess dataset:- ")
+    print(endtime - starttime)
     temp = np.array(preprocessed_dataset)
     print(temp.shape)
     labels = np.array(labels)
     X_train_index,X_test_index,y_train,y_test = train_test_split(np.arange(len(document_lengths)),labels,test_size=0.2,random_state=222)
-    for i in range(0,len(X_train)):
-        preprocessed_dataset_train.append(preprocessed_dataset[X_train[i]])
-        document_lengths_train.append(document_lengths[X_train[i]])
-        sentence_lengths_train.append(sentence_lengths[X_train[i]])
-    for i in range(0,len(X_test)):
-        preprocessed_dataset_test.append(preprocessed_dataset[X_test[i]])
-        document_lengths_test.append(document_lengths[X_test[i]])
-        sentence_lengths_test.append(sentence_lengths[X_test[i]])
+    for i in range(0,len(X_train_index)):
+        preprocessed_dataset_train.append(preprocessed_dataset[X_train_index[i]])
+        document_lengths_train.append(document_lengths[X_train_index[i]])
+        sentence_lengths_train.append(sentence_lengths[X_train_index[i]])
+    for i in range(0,len(X_test_index)):
+        preprocessed_dataset_test.append(preprocessed_dataset[X_test_index[i]])
+        document_lengths_test.append(document_lengths[X_test_index[i]])
+        sentence_lengths_test.append(sentence_lengths[X_test_index[i]])
     preprocessed_dataset_train = np.array(preprocessed_dataset_train)
     preprocessed_dataset_test = np.array(preprocessed_dataset_test)
     document_lengths_train = np.array(document_lengths_train)
