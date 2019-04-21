@@ -241,8 +241,7 @@ def get_deep_contextualized_embeddings(X,y):
                 preprocessed_tokens = preprocess(X[i:i+1][X.index[i]])
                 sequence_lengths.append(len(preprocessed_tokens))
                 y_pred.append(y[i:i+1][y.index[i]])
-                for j in range(len(preprocessed_tokens),max_length):
-                    preprocessed_tokens.append("<PAD>")
+                
                 #word_embedding = embedding_lookup(preprocessed_tokens)
                 #word_embedding = np.array(pad_tokens(word_embedding,max_length))
                 elmo_tokens.append(preprocessed_tokens)
@@ -271,15 +270,22 @@ def save_state():
     np.save('data/trained_models/y_train.npy',y_train)
     np.save('data/trained_models/y_test.npy',y_test)
 
-def preprocess(document):
-    processed_document = re.sub(r'[^a-zA-Z.]', ' ', document)
-    tokens_sentence = sent_tokenize(processed_document)
-    for i in range(0,len(tokens_sentence)):
-        tokens_comment = word_tokenize(processed_document)
+def preprocess(sentences,max_no_sentence,max_sentence_length):
+    processed_tokens = []
+    sentence_lengths = []
+    for i in range(0,len(sentences)):
+        tokens_comment = word_tokenize(sentences[i])
         tokens_comment = remove_stopwords(tokens_comment)
         tokens_comment = lemmatize(tokens_comment)
-    print(len(tokens_sentence))
-    return tokens_comment
+        sentence_length.append(tokens_comment)
+        if(len(tokens_comment) < max_sentence_length):
+            for j in range(len(tokens_comment),max_length):
+                tokens_comment.append("<PAD>")
+        processed_tokens.append(tokens_comment)
+    if(len(processed_tokens) < max_no_sentence):
+        processed_tokens.append(np.zeros(shape=[max_sentence_length]))
+        sentence_lengths.append(0)
+    return processed_tokens,len(sentences),sentence_lengths
 
 def create_dataset_from_chunks(path):
     starttime = time.time()
@@ -295,7 +301,7 @@ def create_dataset_from_chunks(path):
                 if(documents[j][0] != '.'):
                     dataset['label'].append(categories[i])
                     with open(path + categories[i] + '/' +  documents[j],'rb') as f:
-                        dataset['news'].append(str(f.read()))
+                        dataset['news'].append(sent_tokenize(str(f.read())))
     data = pd.DataFrame(data=dataset)
     data.to_csv(path + '/dataset.csv')
     print("Dataset shape:- ")
@@ -304,20 +310,6 @@ def create_dataset_from_chunks(path):
     print("Time taken to create dataset from chunks:- ")
     print(endtime - starttime)
     return data
-            
-def get_sentence_and_words_attr(dataset):
-    max_no_sentence = 0
-    max_no_words = 0
-    document_lengths = []
-    sentence_lengths = []
-    for index,rows in dataset.iterrows():
-        sentence_tokens = sent_tokenize(rows['news'])
-        if max_no_sentence < len(sentence_tokens):
-            max_no_sentence: len(sentence_tokens)
-        for i in range(0,len(sentence_tokens)):
-            if max_no_words < len(sentence_tokens[i]):
-                max_no_words = len(sentence_tokens[i])
-    return max_no_sentence,max_no_words
                 
 if __name__ == '__main__':    
     if(not os.path.exists('data/dataset/dataset.csv')):
