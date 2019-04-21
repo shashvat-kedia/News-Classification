@@ -285,7 +285,7 @@ if __name__ == '__main__':
         document_lengths.append(doc_length)
         sentence_lengths.append(sentence_lengths)
     labels = np.array(labels)
-    X_train_index,X_test_index,y_train,y_test = train_test_split(np.arang(len(document_lengths)),labels,test_size=0.2,random_state=222)
+    X_train_index,X_test_index,y_train,y_test = train_test_split(np.arange(len(document_lengths)),labels,test_size=0.2,random_state=222)
     for i in range(0,len(X_train)):
         preprocessed_dataset_train.append(preprocessed_dataset[X_train[i]])
         document_lengths_train.append(document_lengths[X_train[i]])
