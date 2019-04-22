@@ -331,6 +331,6 @@ if __name__ == '__main__':
     document_lengths_test = np.array(document_lengths_test)
     sentence_lengths_train = np.array(sentence_lengths_train)
     sentence_lengths_test = np.array(sentence_lengths_test)
-    han = HAN(5,1024,max_no_sentence,max_no_words,300,400,10,0.001)
+    han = HAN(5,1024,max_no_sentence,max_sentence_length,300,400,10,0.001)
     han.train(preprocessed_dataset_train,document_lengths_train,sentence_lengths_train,y_train)
     han.test(preprocessed_dataset_test,document_lengths_test,sequence_lengths_test,y_test)
