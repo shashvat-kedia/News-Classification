@@ -12,10 +12,12 @@ from nltk import sent_tokenize, word_tokenize
 from nltk.corpus import stopwords, wordnet
 from nltk.stem import WordNetLemmatizer
 from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.SVC import SVM
 from sklearn.ensemble import RandomForestClassifier
+from sklearn.tree import DecisionTreeClassifier
 from sklearn.preprocessing import LabelEncoder
 from sklearn.model_selection import train_test_split
-from sklearn.metrics import accuracy_score
+from sklearn.metrics import accuracy_score, confusion_matrix, classification_report
 
 stop_words = set(stopwords.words('english'))
 
@@ -79,6 +81,21 @@ def create_dataset_from_chunks(path):
     print(endtime - starttime)
     return data
     
+def print_classifier_report(classifier,X_test,y_test,starttime,endtime,printPreds = False):
+    print("Classifier report for: " + name)
+    predictions = classifier.predict(X_test)
+    if printPreds: 
+        print("Predictions:- ")
+        print(predictions)
+    print("Time to train:- ")
+    print(endtime - starttime)
+    print("Accuracy Score")
+    print(accuracy_score(y_test,predictions))
+    print("Confusion Matris:- ")
+    print(confusion_matrix(y_test,predictions))
+    print("Classifier Report:- ")
+    print(classification_report(y_test,predictions))
+
 if __name__ == '__main__':
     if(not os.path.exists('data/dataset/dataset.csv')):
         print("Creating dataset from chunks:- ")
@@ -94,7 +111,20 @@ if __name__ == '__main__':
     labelEncoder = LabelEncoder()
     labels = labelEncoder.fit_transform(dataset['label'])
     X_train,X_test,y_train,y_test = train_test_split(features,labels,test_size=0.2,random_state=22)
-    randomForestClassifier = RandomForestClassifier()
+    starttime = time.time()
+    randomForestClassifier = RandomForestClassifier(n_estimators=300,oob_score=True)
     randomForestClassifier.fit(X_train,y_train)
-    predictions = randomForestClassifier.predict(X_test)
-    print(accuracy_score(y_test,predictions))
+    endtime = time.time()
+    print_classifier_report(randomForestClassifier,X_test,y_test,starttime,endtime)
+    print("Out-Of-Bag error:- ")
+    print(randomForestClassifier.oob_score_)
+    starttime = time.time()
+    decisionTreeClassifier = DecisionTreeClassifier()
+    decisionTreeClassifier.fit(X_train,y_train)
+    endtime = time.time()
+    print_classifier_report(decisionTreeClassifier,X_test,y_test,starttime,endtime)
+    starttime = time.time()
+    svcClassifier = SVC()
+    svcClassifier.fit(X_train,y_train)
+    endtime = time.time()
+    print_classifier_report(svcClassifier,X_test,y_test,starttime,endtime)
