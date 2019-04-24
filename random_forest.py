@@ -4,6 +4,7 @@ import matplotlib
 matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
 import os
+import sys
 import time
 import nltk
 from nltk import sent_tokenize, word_tokenize
@@ -80,12 +81,9 @@ def create_dataset_from_chunks(path):
     print(endtime - starttime)
     return data
     
-def print_classifier_report(classifier,X_test,y_test,starttime,endtime,name,printPreds = False):
+def print_classifier_report(classifier,X_test,y_test,starttime,endtime,name):
     print("Classifier report for: " + name)
     predictions = classifier.predict(X_test)
-    if printPreds: 
-        print("Predictions:- ")
-        print(predictions)
     print("Time to train:- ")
     print(endtime - starttime)
     print("Accuracy Score")
@@ -94,21 +92,11 @@ def print_classifier_report(classifier,X_test,y_test,starttime,endtime,name,prin
     print(confusion_matrix(y_test,predictions))
     print("Classifier Report:- ")
     print(classification_report(y_test,predictions))
-
-if __name__ == '__main__':
-    if(not os.path.exists('data/dataset/dataset.csv')):
-        print("Creating dataset from chunks:- ")
-        dataset = create_dataset_from_chunks('data/dataset/')
-    else:
-        dataset = pd.read_csv('data/dataset/dataset.csv')
-    print(dataset.shape)
-    print(dataset.head())
-    for index,row in dataset.iterrows():
-        row['news'] = preprocess(sent_tokenize(row['news']))
-    tfidf = TfidfVectorizer(sublinear_tf=True, min_df=5, norm='l2', encoding='latin-1', ngram_range=(1, 2), stop_words='english')
-    features = tfidf.fit_transform(dataset['news']).toarray()
-    labelEncoder = LabelEncoder()
-    labels = labelEncoder.fit_transform(dataset['label'])
+    return predictions
+    
+def train(dataset,labelEncoder,tfidf):
+    features = tfidf.transform(dataset['news']).toarray()
+    labels = labelEncoder.transform(dataset['label'])
     X_train,X_test,y_train,y_test = train_test_split(features,labels,test_size=0.2,random_state=22)
     starttime = time.time()
     randomForestClassifier = RandomForestClassifier(n_estimators=300,oob_score=True)
@@ -123,7 +111,40 @@ if __name__ == '__main__':
     endtime = time.time()
     print_classifier_report(decisionTreeClassifier,X_test,y_test,starttime,endtime,"DecisionTreeClassifier")
     starttime = time.time()
-    svcClassifier = RandomForestClassifier(n_estimators=300,oob_score=True)
+    svcClassifier = SVC(kernel='linear')
     svcClassifier.fit(X_train,y_train)
     endtime = time.time()
     print_classifier_report(svcClassifier,X_test,y_test,starttime,endtime,"SVC")
+    return randomForestClassifier,decisionTreeClassifier,svcClassifier
+
+if __name__ == '__main__':
+    if(not os.path.exists('data/dataset/dataset.csv')):
+        print("Creating dataset from chunks:- ")
+        dataset = create_dataset_from_chunks('data/dataset/')
+    else:
+        dataset = pd.read_csv('data/dataset/dataset.csv')
+    print(dataset.shape)
+    print(dataset.head())
+    labelEncoder = LabelEncoder()
+    labelEncoder.fit(dataset['label'])
+    tfidf = TfidfVectorizer(sublinear_tf=True, min_df=5, norm='l2', encoding='latin-1', ngram_range=(1, 2), stop_words='english')
+    for index,row in dataset.iterrows():
+        row['news'] = preprocess(sent_tokenize(row['news']))
+    tfidf.fit(dataset['news'])
+    randomForestClassifier,decisionTreeClassifier,svcClassifier = train(dataset,labelEncoder,tfidf)
+    while(True):
+        path = input("Enter file path here: ")
+        with open(path,'rb') as file:
+            sent = str(file.read())
+        print("1. Random Forest Classifier")
+        print("2. Decision Trees")
+        print("3. Support Vector Machines")
+        num = int(input("Select model: "))
+        if num == 1:
+            predictions = randomForestClassifier.predict(tfidf.transform([preprocess(sent_tokenize(sent))]))
+        elif num == 2:
+            predictions = decisionTreeClassifier.predict(tfidf.transform([preprocess(sent_tokenize(sent))]))
+        else:
+            predictions = svcClassifier.predict(tfidf.transform([preprocess(sent_tokenize(sent))]))
+        print(labelEncoder.inverse_transform(predictions[0]))
+        
