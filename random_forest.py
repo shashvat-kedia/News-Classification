@@ -111,7 +111,7 @@ def train(dataset,labelEncoder,tfidf):
     endtime = time.time()
     print_classifier_report(decisionTreeClassifier,X_test,y_test,starttime,endtime,"DecisionTreeClassifier")
     starttime = time.time()
-    svcClassifier = SVC(kernel='linear')
+    svcClassifier = SVC(C=8.0,kernel='linear')
     svcClassifier.fit(X_train,y_train)
     endtime = time.time()
     print_classifier_report(svcClassifier,X_test,y_test,starttime,endtime,"SVC")
@@ -132,19 +132,8 @@ if __name__ == '__main__':
         row['news'] = preprocess(sent_tokenize(row['news']))
     tfidf.fit(dataset['news'])
     randomForestClassifier,decisionTreeClassifier,svcClassifier = train(dataset,labelEncoder,tfidf)
-    while(True):
-        path = input("Enter file path here: ")
-        with open(path,'rb') as file:
+    path = input("Enter file path here: ")
+    with open(path,'rb') as file:
             sent = str(file.read())
-        print("1. Random Forest Classifier")
-        print("2. Decision Trees")
-        print("3. Support Vector Machines")
-        num = int(input("Select model: "))
-        if num == 1:
-            predictions = randomForestClassifier.predict(tfidf.transform([preprocess(sent_tokenize(sent))]))
-        elif num == 2:
-            predictions = decisionTreeClassifier.predict(tfidf.transform([preprocess(sent_tokenize(sent))]))
-        else:
-            predictions = svcClassifier.predict(tfidf.transform([preprocess(sent_tokenize(sent))]))
-        print(labelEncoder.inverse_transform(predictions[0]))
-        
+    predictions = randomForestClassifier.predict(tfidf.transform([preprocess(sent_tokenize(sent))]))
+    print(labelEncoder.inverse_transform(predictions))    
