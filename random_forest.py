@@ -3,8 +3,6 @@ import numpy as np
 import matplotlib
 matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
-import tensorflow as tf 
-import tensorflow.contrib.layers as layers
 import os
 import time
 import nltk
@@ -12,12 +10,13 @@ from nltk import sent_tokenize, word_tokenize
 from nltk.corpus import stopwords, wordnet
 from nltk.stem import WordNetLemmatizer
 from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.SVC import SVM
+from sklearn.svm import SVC
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.preprocessing import LabelEncoder
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score, confusion_matrix, classification_report
+import seaborn as sb
 
 stop_words = set(stopwords.words('english'))
 
@@ -81,7 +80,7 @@ def create_dataset_from_chunks(path):
     print(endtime - starttime)
     return data
     
-def print_classifier_report(classifier,X_test,y_test,starttime,endtime,printPreds = False):
+def print_classifier_report(classifier,X_test,y_test,starttime,endtime,name,printPreds = False):
     print("Classifier report for: " + name)
     predictions = classifier.predict(X_test)
     if printPreds: 
@@ -115,16 +114,16 @@ if __name__ == '__main__':
     randomForestClassifier = RandomForestClassifier(n_estimators=300,oob_score=True)
     randomForestClassifier.fit(X_train,y_train)
     endtime = time.time()
-    print_classifier_report(randomForestClassifier,X_test,y_test,starttime,endtime)
+    print_classifier_report(randomForestClassifier,X_test,y_test,starttime,endtime,"RandomForestClassifier")
     print("Out-Of-Bag error:- ")
     print(randomForestClassifier.oob_score_)
     starttime = time.time()
     decisionTreeClassifier = DecisionTreeClassifier()
     decisionTreeClassifier.fit(X_train,y_train)
     endtime = time.time()
-    print_classifier_report(decisionTreeClassifier,X_test,y_test,starttime,endtime)
+    print_classifier_report(decisionTreeClassifier,X_test,y_test,starttime,endtime,"DecisionTreeClassifier")
     starttime = time.time()
-    svcClassifier = SVC()
+    svcClassifier = RandomForestClassifier(n_estimators=300,oob_score=True)
     svcClassifier.fit(X_train,y_train)
     endtime = time.time()
-    print_classifier_report(svcClassifier,X_test,y_test,starttime,endtime)
+    print_classifier_report(svcClassifier,X_test,y_test,starttime,endtime,"SVC")
