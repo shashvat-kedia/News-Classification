@@ -77,7 +77,7 @@ class HAN():
         with tf.variable_scope('softmax',reuse=tf.AUTO_REUSE):
             self.W = tf.get_variable('W',initializer=tf.truncated_normal_initializer(shape=[None,2 * self.hidden_size]),dtype=tf.float32)
             self.b = tf.get_variable('b',initializer=tf.constant_initializer(0.0,shape=[None]),dtype=tf.float32)
-        self.logits = self.matmul(self.final_state_se,self.W) + self.b
+        self.logits = tf.matmul(self.final_state_se,self.W) + self.b
         self.predictions= tf.nn.softmax(self.logits)
         self.cross_entropy = tf.nn.sparse_softmax_cross_entropy_with_logits(labels=self.y,logits=self.logits)
         self.cost = tf.reduce_mean(self.cross_entropy)
